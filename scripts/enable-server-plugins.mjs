@@ -152,7 +152,7 @@ export async function enableServerPlugins({
         return {
             changed: true,
             backupPath,
-            message: '已安全启用服务器插件。请手动运行 npm start。',
+            message: '已安全启用服务器插件。请手动运行：cd "$HOME/SillyTavern" && bash start.sh',
         };
     } finally {
         if (temporaryCreated) {
@@ -166,7 +166,7 @@ async function main() {
         const result = await enableServerPlugins();
         console.log(result.message);
         if (result.backupPath) console.log(`配置备份：${result.backupPath}`);
-        console.log('本脚本没有启动或重启 SillyTavern。下一步请运行：npm start');
+        console.log('本脚本没有启动或重启 SillyTavern。下一步请运行：cd "$HOME/SillyTavern" && bash start.sh');
     } catch (error) {
         console.error(`安装停止：${error.message}`);
         process.exitCode = 1;
