@@ -53,19 +53,6 @@ test('registers only the four documented endpoints under a valid plugin ID', asy
     ]);
 });
 
-test('write and restore routes stay disabled during read-only phase', async () => {
-    const router = new FakeRouter();
-    await init(router);
-    for (const path of ['POST /apply-lan-settings', 'POST /restore-latest-backup']) {
-        const response = fakeResponse();
-        router.routes.get(path)({}, response);
-        assert.equal(response.statusCode, 501);
-        assert.equal(response.body.ok, false);
-        assert.equal(response.body.error.code, 'READ_ONLY_PHASE');
-        assert.equal(response.headers['Cache-Control'], 'no-store');
-    }
-});
-
 test('oversized declared requests are rejected before a route handler', async () => {
     const router = new FakeRouter();
     await init(router);

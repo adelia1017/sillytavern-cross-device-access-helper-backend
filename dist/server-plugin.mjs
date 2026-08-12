@@ -3102,7 +3102,7 @@ var require_timestamp = __commonJS({
       resolve: (str) => parseSexagesimal(str, false),
       stringify: stringifySexagesimal
     };
-    var timestamp = {
+    var timestamp2 = {
       identify: (value) => value instanceof Date,
       default: true,
       tag: "tag:yaml.org,2002:timestamp",
@@ -3111,7 +3111,7 @@ var require_timestamp = __commonJS({
       // assumed to be 00:00:00Z (start of day, UTC).
       test: RegExp("^([0-9]{4})-([0-9]{1,2})-([0-9]{1,2})(?:(?:t|T|[ \\t]+)([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2}(\\.[0-9]+)?)(?:[ \\t]*(Z|[-+][012]?[0-9](?::[0-9]{2})?))?)?$"),
       resolve(str) {
-        const match = str.match(timestamp.test);
+        const match = str.match(timestamp2.test);
         if (!match)
           throw new Error("!!timestamp expects a date, starting with yyyy-mm-dd");
         const [, year, month, day, hour, minute, second] = match.map(Number);
@@ -3130,7 +3130,7 @@ var require_timestamp = __commonJS({
     };
     exports.floatTime = floatTime;
     exports.intTime = intTime;
-    exports.timestamp = timestamp;
+    exports.timestamp = timestamp2;
   }
 });
 
@@ -3150,7 +3150,7 @@ var require_schema3 = __commonJS({
     var omap = require_omap();
     var pairs = require_pairs();
     var set = require_set();
-    var timestamp = require_timestamp();
+    var timestamp2 = require_timestamp();
     var schema = [
       map.map,
       seq.seq,
@@ -3170,9 +3170,9 @@ var require_schema3 = __commonJS({
       omap.omap,
       pairs.pairs,
       set.set,
-      timestamp.intTime,
-      timestamp.floatTime,
-      timestamp.timestamp
+      timestamp2.intTime,
+      timestamp2.floatTime,
+      timestamp2.timestamp
     ];
     exports.schema = schema;
   }
@@ -3197,7 +3197,7 @@ var require_tags = __commonJS({
     var pairs = require_pairs();
     var schema$2 = require_schema3();
     var set = require_set();
-    var timestamp = require_timestamp();
+    var timestamp2 = require_timestamp();
     var schemas = /* @__PURE__ */ new Map([
       ["core", schema.schema],
       ["failsafe", [map.map, seq.seq, string.string]],
@@ -3211,11 +3211,11 @@ var require_tags = __commonJS({
       float: float.float,
       floatExp: float.floatExp,
       floatNaN: float.floatNaN,
-      floatTime: timestamp.floatTime,
+      floatTime: timestamp2.floatTime,
       int: int.int,
       intHex: int.intHex,
       intOct: int.intOct,
-      intTime: timestamp.intTime,
+      intTime: timestamp2.intTime,
       map: map.map,
       merge: merge.merge,
       null: _null.nullTag,
@@ -3223,7 +3223,7 @@ var require_tags = __commonJS({
       pairs: pairs.pairs,
       seq: seq.seq,
       set: set.set,
-      timestamp: timestamp.timestamp
+      timestamp: timestamp2.timestamp
     };
     var coreKnownTags = {
       "tag:yaml.org,2002:binary": binary.binary,
@@ -3231,7 +3231,7 @@ var require_tags = __commonJS({
       "tag:yaml.org,2002:omap": omap.omap,
       "tag:yaml.org,2002:pairs": pairs.pairs,
       "tag:yaml.org,2002:set": set.set,
-      "tag:yaml.org,2002:timestamp": timestamp.timestamp
+      "tag:yaml.org,2002:timestamp": timestamp2.timestamp
     };
     function getTags(customTags, schemaName, addMergeTag) {
       const schemaTags = schemas.get(schemaName);
@@ -7338,6 +7338,7 @@ var import_yaml = __toESM(require_dist(), 1);
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { isDeepStrictEqual } from "node:util";
 
 // shared/ip-utils.js
 var PRIVATE_RANGES = Object.freeze([
@@ -7387,6 +7388,8 @@ function validateChangeRequest(body) {
 var CONFIG_FILE = "config.yaml";
 var WHITELIST_FILE = "whitelist.txt";
 var LOCALHOST_ENTRIES = Object.freeze(["::1", "127.0.0.1"]);
+var ALLOWED_FIELDS = Object.freeze(["listen", "whitelistMode", "whitelist"]);
+var BACKUP_PATTERN = /^config\.yaml\.cross-device-access-helper-backup-\d{8}-?\d{6}(?:-\d{3})?(?:-\d+)?\.bak$/;
 var SafeConfigError = class extends Error {
   constructor(code, publicMessage) {
     super(publicMessage);
@@ -7433,10 +7436,7 @@ async function fileExists(filePath) {
     throw error;
   }
 }
-async function readConfig(serverRoot = process.cwd()) {
-  const configPath = path.resolve(serverRoot, CONFIG_FILE);
-  await assertRegularFile(configPath);
-  const source = await fs.readFile(configPath, "utf8");
+function parseConfigSource(source, label = CONFIG_FILE) {
   const document = (0, import_yaml.parseDocument)(source, {
     prettyErrors: false,
     strict: true,
@@ -7446,19 +7446,37 @@ async function readConfig(serverRoot = process.cwd()) {
     const duplicate = document.errors.some((error) => error.code === "DUPLICATE_KEY");
     throw new SafeConfigError(
       duplicate ? "DUPLICATE_KEY" : "INVALID_YAML",
-      duplicate ? "config.yaml \u542B\u6709\u91CD\u590D\u952E\uFF0C\u5DF2\u62D2\u7EDD\u7EE7\u7EED\u3002\u8BF7\u5148\u4FEE\u590D\u914D\u7F6E\u3002" : "config.yaml \u7684 YAML \u8BED\u6CD5\u65E0\u6548\uFF0C\u5DF2\u62D2\u7EDD\u7EE7\u7EED\u3002"
+      duplicate ? `${label} \u542B\u6709\u91CD\u590D\u952E\uFF0C\u5DF2\u62D2\u7EDD\u7EE7\u7EED\u3002\u8BF7\u5148\u4FEE\u590D\u914D\u7F6E\u3002` : `${label} \u7684 YAML \u8BED\u6CD5\u65E0\u6548\uFF0C\u5DF2\u62D2\u7EDD\u7EE7\u7EED\u3002`
     );
+  }
+  const root = document.toJS({ maxAliasCount: 100 });
+  if (!root || typeof root !== "object" || Array.isArray(root)) {
+    throw new SafeConfigError("INVALID_YAML_ROOT", `${label} \u7684\u6839\u8282\u70B9\u5FC5\u987B\u662F\u914D\u7F6E\u5BF9\u8C61\u3002`);
   }
   const listen = requireBoolean(scalar(document, "listen"), "listen");
   const whitelistMode = requireBoolean(scalar(document, "whitelistMode"), "whitelistMode");
   const whitelist = requireWhitelist(scalar(document, "whitelist"));
   const configuredPort = scalar(document, "port");
   return {
-    configPath,
     document,
-    source,
+    root,
     allowed: { listen, whitelistMode, whitelist },
-    configuredPort: Number.isInteger(configuredPort) && configuredPort >= 1 && configuredPort <= 65535 ? configuredPort : 8e3,
+    configuredPort: Number.isInteger(configuredPort) && configuredPort >= 1 && configuredPort <= 65535 ? configuredPort : 8e3
+  };
+}
+async function readConfigFile(filePath, label = path.basename(filePath)) {
+  await assertRegularFile(filePath);
+  const source = await fs.readFile(filePath, "utf8");
+  const parsed = parseConfigSource(source, label);
+  const stat = await fs.stat(filePath);
+  return { filePath, source, stat, ...parsed };
+}
+async function readConfig(serverRoot = process.cwd()) {
+  const configPath = path.resolve(serverRoot, CONFIG_FILE);
+  const parsed = await readConfigFile(configPath, CONFIG_FILE);
+  return {
+    configPath,
+    ...parsed,
     legacyWhitelistExists: await fileExists(path.resolve(serverRoot, WHITELIST_FILE))
   };
 }
@@ -7496,35 +7514,148 @@ function assertDefaultConfigPath(serverRoot, runtime) {
     );
   }
 }
+function isDefaultTermuxRoot(serverRoot, platform, expectedRoot = path.resolve(process.env.HOME ?? "", "SillyTavern")) {
+  return platform === "android" && Boolean(process.env.HOME || expectedRoot) && path.resolve(serverRoot) === path.resolve(expectedRoot);
+}
+function assertWritableEnvironment(serverRoot, platform, expectedRoot) {
+  if (platform !== "android") {
+    throw new SafeConfigError("UNSUPPORTED_PLATFORM", "\u81EA\u52A8\u5199\u5165\u4EC5\u652F\u6301 Android Termux\u3002");
+  }
+  if (!isDefaultTermuxRoot(serverRoot, platform, expectedRoot)) {
+    throw new SafeConfigError("UNSUPPORTED_PATH", "\u81EA\u52A8\u5199\u5165\u4EC5\u652F\u6301\u5E38\u89C4\u8DEF\u5F84 ~/SillyTavern\u3002");
+  }
+}
+function desiredConfig(current, request) {
+  const requestedEntry = request.mode === "network" ? request.subnet24 : request.deviceIp;
+  const whitelist = [...current.allowed.whitelist];
+  for (const entry of [...LOCALHOST_ENTRIES, requestedEntry]) {
+    if (!whitelist.includes(entry)) whitelist.push(entry);
+  }
+  return {
+    requestedEntry,
+    allowed: { listen: true, whitelistMode: true, whitelist }
+  };
+}
+function changeList(before, after) {
+  return ALLOWED_FIELDS.flatMap((field) => isDeepStrictEqual(before[field], after[field]) ? [] : [{ field, before: before[field], after: after[field] }]);
+}
+function withoutAllowedFields(root) {
+  const copy = structuredClone(root);
+  for (const field of ALLOWED_FIELDS) delete copy[field];
+  return copy;
+}
+function timestamp(date = /* @__PURE__ */ new Date()) {
+  const pad = (value, length = 2) => String(value).padStart(length, "0");
+  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}-${pad(date.getMilliseconds(), 3)}`;
+}
+async function writeExclusiveSynced(filePath, source, mode) {
+  const handle = await fs.open(filePath, "wx", mode);
+  try {
+    await handle.writeFile(source, "utf8");
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+}
+async function removeIfPresent(filePath) {
+  try {
+    await fs.unlink(filePath);
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+}
+async function syncDirectory(directory) {
+  let handle;
+  try {
+    handle = await fs.open(directory, "r");
+    await handle.sync();
+  } catch (error) {
+    if (!["EINVAL", "EISDIR", "EPERM", "ENOTSUP"].includes(error?.code)) throw error;
+  } finally {
+    await handle?.close();
+  }
+}
+async function uniqueBackupPath(serverRoot, prefix, now) {
+  const base = path.join(serverRoot, `${CONFIG_FILE}.${prefix}-${timestamp(now)}.bak`);
+  for (let suffix = 0; suffix < 100; suffix++) {
+    const candidate = suffix === 0 ? base : base.replace(/\.bak$/, `-${suffix}.bak`);
+    if (!await fileExists(candidate)) return candidate;
+  }
+  throw new SafeConfigError("BACKUP_NAME_EXHAUSTED", "\u65E0\u6CD5\u521B\u5EFA\u552F\u4E00\u7684\u5907\u4EFD\u6587\u4EF6\u540D\uFF0C\u539F\u914D\u7F6E\u672A\u88AB\u4FEE\u6539\u3002");
+}
+async function replaceConfig({ serverRoot, current, nextSource, verify, backupPrefix, now = /* @__PURE__ */ new Date(), lifecycleHook, replaceFile = fs.rename }) {
+  const tempPath = path.join(serverRoot, `.${CONFIG_FILE}.cross-device-access-helper-${process.pid}-${timestamp(now)}.tmp`);
+  let backupPath = null;
+  try {
+    await writeExclusiveSynced(tempPath, nextSource, current.stat.mode & 511);
+    const verified = await readConfigFile(tempPath, "\u4E34\u65F6\u914D\u7F6E");
+    verify(verified);
+    await lifecycleHook?.("temporary-verified");
+    const latestSource = await fs.readFile(current.configPath, "utf8");
+    if (latestSource !== current.source) {
+      throw new SafeConfigError("CONFIG_CHANGED", "\u64CD\u4F5C\u671F\u95F4 config.yaml \u88AB\u5176\u4ED6\u7A0B\u5E8F\u4FEE\u6539\uFF0C\u5DF2\u505C\u6B62\u4E14\u4E0D\u4F1A\u8986\u76D6\u3002");
+    }
+    backupPath = await uniqueBackupPath(serverRoot, backupPrefix, now);
+    await writeExclusiveSynced(backupPath, current.source, current.stat.mode & 511);
+    await lifecycleHook?.("backup-created");
+    const finalSource = await fs.readFile(current.configPath, "utf8");
+    if (finalSource !== current.source) {
+      throw new SafeConfigError("CONFIG_CHANGED", "\u64CD\u4F5C\u671F\u95F4 config.yaml \u88AB\u5176\u4ED6\u7A0B\u5E8F\u4FEE\u6539\uFF0C\u5DF2\u505C\u6B62\u4E14\u4E0D\u4F1A\u8986\u76D6\u3002");
+    }
+    await replaceFile(tempPath, current.configPath);
+    await syncDirectory(serverRoot);
+    return backupPath;
+  } catch (error) {
+    await removeIfPresent(tempPath);
+    throw error;
+  }
+}
+async function findLatestBackup(serverRoot = process.cwd()) {
+  const entries = await fs.readdir(serverRoot, { withFileTypes: true });
+  const candidates = await Promise.all(entries.filter((entry) => entry.isFile() && BACKUP_PATTERN.test(entry.name)).map(async (entry) => ({ name: entry.name, stat: await fs.stat(path.join(serverRoot, entry.name)) })));
+  candidates.sort((left, right) => right.stat.mtimeMs - left.stat.mtimeMs || right.name.localeCompare(left.name));
+  return candidates[0]?.name ?? null;
+}
 async function getStatus({
   serverRoot = process.cwd(),
   runtime = globalThis.COMMAND_LINE_ARGS,
   interfaces = os.networkInterfaces(),
-  platform = process.platform
+  platform = process.platform,
+  expectedRoot,
+  activeConfigSnapshot = null
 } = {}) {
   assertDefaultConfigPath(serverRoot, runtime);
   const config = await readConfig(serverRoot);
   const active = runtimeSnapshot(runtime, config.configuredPort);
   const lanIpv4 = privateLanAddresses(interfaces);
   const accessUrls = lanIpv4.map((item) => `${active.protocol}://${item.address}:${active.port}`);
+  const runtimeAllowed = activeConfigSnapshot ? {
+    listen: typeof runtime?.listen === "boolean" ? runtime.listen : activeConfigSnapshot.listen,
+    whitelistMode: typeof runtime?.whitelistMode === "boolean" ? runtime.whitelistMode : activeConfigSnapshot.whitelistMode,
+    whitelist: activeConfigSnapshot.whitelist
+  } : null;
+  const latestBackup = await findLatestBackup(serverRoot);
   return {
-    phase: "read-only-preview",
-    writeEnabled: false,
+    phase: "full",
+    writeEnabled: isDefaultTermuxRoot(serverRoot, platform, expectedRoot) && !config.legacyWhitelistExists,
     platform,
     supportedPlatform: platform === "android",
     config: config.allowed,
-    runtime: active,
+    runtime: { ...active, whitelist: runtimeAllowed?.whitelist ?? null },
     network: { lanIpv4, accessUrls },
     legacyWhitelist: {
       exists: config.legacyWhitelistExists,
       blocksApply: config.legacyWhitelistExists
     },
-    restartRequired: false
+    backups: { available: Boolean(latestBackup), latestName: latestBackup },
+    restartRequired: runtimeAllowed ? !isDeepStrictEqual(config.allowed, runtimeAllowed) : false
   };
 }
 async function previewChange(body, {
   serverRoot = process.cwd(),
-  runtime = globalThis.COMMAND_LINE_ARGS
+  runtime = globalThis.COMMAND_LINE_ARGS,
+  platform = process.platform,
+  expectedRoot
 } = {}) {
   const request = validateChangeRequest(body);
   if (!request.valid) {
@@ -7532,37 +7663,119 @@ async function previewChange(body, {
   }
   assertDefaultConfigPath(serverRoot, runtime);
   const current = await readConfig(serverRoot);
-  const requestedEntry = request.mode === "network" ? request.subnet24 : request.deviceIp;
-  const nextWhitelist = [...current.allowed.whitelist];
-  for (const entry of [...LOCALHOST_ENTRIES, requestedEntry]) {
-    if (!nextWhitelist.includes(entry)) nextWhitelist.push(entry);
-  }
-  const next = {
-    listen: true,
-    whitelistMode: true,
-    whitelist: nextWhitelist
-  };
-  const changes = [];
-  for (const key of ["listen", "whitelistMode", "whitelist"]) {
-    if (JSON.stringify(current.allowed[key]) !== JSON.stringify(next[key])) {
-      changes.push({ field: key, before: current.allowed[key], after: next[key] });
-    }
-  }
+  const next = desiredConfig(current, request);
+  const changes = changeList(current.allowed, next.allowed);
+  const supported = isDefaultTermuxRoot(serverRoot, platform, expectedRoot);
   return {
-    request: { deviceIp: request.deviceIp, mode: request.mode, whitelistEntry: requestedEntry },
+    request: { deviceIp: request.deviceIp, mode: request.mode, whitelistEntry: next.requestedEntry },
     changes,
     changed: changes.length > 0,
-    canApply: false,
+    canApply: changes.length > 0 && supported && !current.legacyWhitelistExists,
     applyBlockedReasons: [
-      "\u5F53\u524D\u529F\u80FD\u53EA\u63D0\u4F9B\u8BFB\u53D6\u548C\u9884\u89C8\uFF0C\u4E0D\u4F1A\u5199\u5165\u914D\u7F6E\u3002",
+      ...!supported ? ["\u81EA\u52A8\u5199\u5165\u4EC5\u652F\u6301 Android Termux \u5E38\u89C4\u8DEF\u5F84 ~/SillyTavern\u3002"] : [],
       ...current.legacyWhitelistExists ? ["\u68C0\u6D4B\u5230 whitelist.txt\uFF1B\u5B83\u4F1A\u8986\u76D6 config.yaml \u4E2D\u7684\u767D\u540D\u5355\u3002"] : []
     ],
     preservedWhitelist: current.allowed.whitelist
   };
 }
+async function applyLanSettings(body, {
+  serverRoot = process.cwd(),
+  runtime = globalThis.COMMAND_LINE_ARGS,
+  platform = process.platform,
+  expectedRoot,
+  now = /* @__PURE__ */ new Date(),
+  lifecycleHook,
+  replaceFile = fs.rename
+} = {}) {
+  const request = validateChangeRequest(body);
+  if (!request.valid) throw new SafeConfigError("INVALID_REQUEST", request.message);
+  assertDefaultConfigPath(serverRoot, runtime);
+  assertWritableEnvironment(serverRoot, platform, expectedRoot);
+  const current = await readConfig(serverRoot);
+  if (current.legacyWhitelistExists) {
+    throw new SafeConfigError("LEGACY_WHITELIST", "\u68C0\u6D4B\u5230 whitelist.txt\uFF1B\u5B83\u4F1A\u8986\u76D6 config.yaml\uFF0C\u5DF2\u62D2\u7EDD\u81EA\u52A8\u4FEE\u6539\u3002");
+  }
+  const next = desiredConfig(current, request);
+  const changes = changeList(current.allowed, next.allowed);
+  if (changes.length === 0) {
+    return { changed: false, changes: [], backupName: null, restartRequired: false };
+  }
+  for (const field of ALLOWED_FIELDS) current.document.set(field, next.allowed[field]);
+  const nextSource = String(current.document);
+  const backupPath = await replaceConfig({
+    serverRoot,
+    current,
+    nextSource,
+    backupPrefix: "cross-device-access-helper-backup",
+    now,
+    lifecycleHook,
+    replaceFile,
+    verify(verified) {
+      if (!isDeepStrictEqual(verified.allowed, next.allowed)) {
+        throw new SafeConfigError("VERIFY_FAILED", "\u4E34\u65F6\u914D\u7F6E\u4E2D\u7684\u76EE\u6807\u5B57\u6BB5\u9A8C\u8BC1\u5931\u8D25\uFF0C\u539F\u914D\u7F6E\u672A\u88AB\u4FEE\u6539\u3002");
+      }
+      if (!isDeepStrictEqual(withoutAllowedFields(verified.root), withoutAllowedFields(current.root))) {
+        throw new SafeConfigError("UNEXPECTED_CHANGE", "\u68C0\u6D4B\u5230\u5141\u8BB8\u5B57\u6BB5\u4E4B\u5916\u7684\u914D\u7F6E\u53D8\u5316\uFF0C\u539F\u914D\u7F6E\u672A\u88AB\u4FEE\u6539\u3002");
+      }
+    }
+  });
+  return {
+    changed: true,
+    changes,
+    backupName: path.basename(backupPath),
+    restartRequired: true,
+    whitelistEntry: next.requestedEntry
+  };
+}
+function validateEmptyBody(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body) || Object.keys(body).length !== 0) {
+    throw new SafeConfigError("INVALID_REQUEST", "\u6062\u590D\u63A5\u53E3\u4E0D\u63A5\u53D7\u8DEF\u5F84\u6216\u5176\u4ED6\u53C2\u6570\u3002");
+  }
+}
+async function restoreLatestBackup(body, {
+  serverRoot = process.cwd(),
+  runtime = globalThis.COMMAND_LINE_ARGS,
+  platform = process.platform,
+  expectedRoot,
+  now = /* @__PURE__ */ new Date(),
+  lifecycleHook,
+  replaceFile = fs.rename
+} = {}) {
+  validateEmptyBody(body);
+  assertDefaultConfigPath(serverRoot, runtime);
+  assertWritableEnvironment(serverRoot, platform, expectedRoot);
+  const backupName = await findLatestBackup(serverRoot);
+  if (!backupName) throw new SafeConfigError("BACKUP_NOT_FOUND", "\u6CA1\u6709\u627E\u5230\u672C\u52A9\u624B\u521B\u5EFA\u7684\u914D\u7F6E\u5907\u4EFD\u3002");
+  const current = await readConfig(serverRoot);
+  const backup = await readConfigFile(path.join(serverRoot, backupName), "\u5F85\u6062\u590D\u5907\u4EFD");
+  if (backup.source === current.source) {
+    return { changed: false, restoredBackupName: backupName, safetyBackupName: null, restartRequired: false };
+  }
+  const safetyBackupPath = await replaceConfig({
+    serverRoot,
+    current,
+    nextSource: backup.source,
+    backupPrefix: "cross-device-access-helper-pre-restore",
+    now,
+    lifecycleHook,
+    replaceFile,
+    verify(verified) {
+      if (!isDeepStrictEqual(verified.root, backup.root)) {
+        throw new SafeConfigError("VERIFY_FAILED", "\u4E34\u65F6\u6062\u590D\u914D\u7F6E\u4E0E\u5907\u4EFD\u5185\u5BB9\u4E0D\u4E00\u81F4\uFF0C\u539F\u914D\u7F6E\u672A\u88AB\u4FEE\u6539\u3002");
+      }
+    }
+  });
+  return {
+    changed: true,
+    restoredBackupName: backupName,
+    safetyBackupName: path.basename(safetyBackupPath),
+    restartRequired: true
+  };
+}
 
 // server/index.mjs
 var MAX_REQUEST_BYTES = 4096;
+var writeOperationInProgress = false;
 var info = Object.freeze({
   id: "cross-device-access-helper-backend",
   name: "\u8DE8\u8BBE\u5907\u8BBF\u95EE\u52A9\u624B\uFF08\u540E\u7AEF\u7248\uFF09",
@@ -7595,11 +7808,28 @@ function rejectOversizedRequest(request, response, next) {
   }
   next();
 }
+async function runExclusiveWrite(operation) {
+  if (writeOperationInProgress) {
+    throw new SafeConfigError("OPERATION_IN_PROGRESS", "\u53E6\u4E00\u9879\u914D\u7F6E\u64CD\u4F5C\u6B63\u5728\u8FDB\u884C\uFF0C\u8BF7\u7A0D\u540E\u518D\u8BD5\u3002");
+  }
+  writeOperationInProgress = true;
+  try {
+    return await operation();
+  } finally {
+    writeOperationInProgress = false;
+  }
+}
 async function init(router) {
   router.use(rejectOversizedRequest);
+  let activeConfigSnapshot = null;
+  try {
+    activeConfigSnapshot = (await readConfig()).allowed;
+  } catch (error) {
+    console.error("[cross-device-access-helper] Unable to capture startup config:", error?.message ?? error);
+  }
   router.get("/status", async (_request, response) => {
     try {
-      return noStore(response).json({ ok: true, data: await getStatus() });
+      return noStore(response).json({ ok: true, data: await getStatus({ activeConfigSnapshot }) });
     } catch (error) {
       return sendError(response, error);
     }
@@ -7611,15 +7841,27 @@ async function init(router) {
       return sendError(response, error);
     }
   });
-  router.post("/apply-lan-settings", (_request, response) => noStore(response).status(501).json({
-    ok: false,
-    error: { code: "READ_ONLY_PHASE", message: "\u5B89\u5168\u5199\u5165\u5C1A\u672A\u542F\u7528\uFF1B\u5F53\u524D\u7248\u672C\u4E0D\u4F1A\u4FEE\u6539 config.yaml\u3002" }
-  }));
-  router.post("/restore-latest-backup", (_request, response) => noStore(response).status(501).json({
-    ok: false,
-    error: { code: "READ_ONLY_PHASE", message: "\u6062\u590D\u529F\u80FD\u5C1A\u672A\u542F\u7528\uFF1B\u5F53\u524D\u7248\u672C\u4E0D\u4F1A\u4FEE\u6539\u4EFB\u4F55\u6587\u4EF6\u3002" }
-  }));
-  console.log("[cross-device-access-helper] Loaded in read-only preview phase.");
+  router.post("/apply-lan-settings", async (request, response) => {
+    try {
+      return noStore(response).json({
+        ok: true,
+        data: await runExclusiveWrite(() => applyLanSettings(request.body))
+      });
+    } catch (error) {
+      return sendError(response, error);
+    }
+  });
+  router.post("/restore-latest-backup", async (request, response) => {
+    try {
+      return noStore(response).json({
+        ok: true,
+        data: await runExclusiveWrite(() => restoreLatestBackup(request.body))
+      });
+    } catch (error) {
+      return sendError(response, error);
+    }
+  });
+  console.log("[cross-device-access-helper] Loaded. Safe apply and restore endpoints are available.");
 }
 async function exit() {
 }

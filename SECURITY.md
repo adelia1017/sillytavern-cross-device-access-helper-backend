@@ -8,6 +8,8 @@
 - 从配置中使用 `listen`、`whitelistMode`、`whitelist`，并只读端口以生成访问地址。
 - 使用 Node.js 的本机网络接口信息识别私有局域网 IPv4。
 - 接收严格的 `{ deviceIp, mode }` 请求；`mode` 只能是 `single` 或 `network`。
+- 在 Android Termux 常规路径中，二次确认后只修改 `listen`、`whitelistMode`、`whitelist`。
+- 创建本助手专用备份，并且只恢复最近一次本助手备份；恢复前再备份当前配置。
 
 ## 明确禁止
 
@@ -17,9 +19,11 @@
 - 不执行 Shell、子进程或自动重启；不连接外部服务器；无遥测。
 - 不删除 SillyTavern 数据。
 
-## 当前功能边界
+## 写入功能边界
 
-当前只有状态读取和修改预览。写入、备份和恢复接口固定返回 501，不会改动文件。
+运行中的写入接口只接受严格的设备 IP 和固定模式，不接受路径、字段名或任意 YAML 值。恢复接口不接受任何参数。写入只在 Android Termux 的 `~/SillyTavern` 开放；检测到自定义配置路径、符号链接、重复 YAML 键或 `whitelist.txt` 覆盖时会拒绝应用。
+
+配置先写入同目录临时文件并再次解析验证，再创建备份并原子替换。操作期间若原配置被其他程序修改，会放弃替换。后端不会修改 `enableServerPlugins`、端口、认证、CSRF 或 `securityOverride`，也不会自动重启。
 
 ### 关于首次启用服务器插件
 

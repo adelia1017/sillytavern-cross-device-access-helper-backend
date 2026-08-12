@@ -1,6 +1,7 @@
-import { getStatus, previewChange, SafeConfigError } from './config-service.mjs';
+import { applyLanSettings, getStatus, previewChange, readConfig, restoreLatestBackup, SafeConfigError } from './config-service.mjs';
 
 const MAX_REQUEST_BYTES = 4096;
+let writeOperationInProgress = false;
 
 export const info = Object.freeze({
     id: 'cross-device-access-helper-backend',
@@ -38,12 +39,30 @@ function rejectOversizedRequest(request, response, next) {
     next();
 }
 
+async function runExclusiveWrite(operation) {
+    if (writeOperationInProgress) {
+        throw new SafeConfigError('OPERATION_IN_PROGRESS', '另一项配置操作正在进行，请稍后再试。');
+    }
+    writeOperationInProgress = true;
+    try {
+        return await operation();
+    } finally {
+        writeOperationInProgress = false;
+    }
+}
+
 export async function init(router) {
     router.use(rejectOversizedRequest);
+    let activeConfigSnapshot = null;
+    try {
+        activeConfigSnapshot = (await readConfig()).allowed;
+    } catch (error) {
+        console.error('[cross-device-access-helper] Unable to capture startup config:', error?.message ?? error);
+    }
 
     router.get('/status', async (_request, response) => {
         try {
-            return noStore(response).json({ ok: true, data: await getStatus() });
+            return noStore(response).json({ ok: true, data: await getStatus({ activeConfigSnapshot }) });
         } catch (error) {
             return sendError(response, error);
         }
@@ -57,17 +76,29 @@ export async function init(router) {
         }
     });
 
-    router.post('/apply-lan-settings', (_request, response) => noStore(response).status(501).json({
-        ok: false,
-        error: { code: 'READ_ONLY_PHASE', message: '安全写入尚未启用；当前版本不会修改 config.yaml。' },
-    }));
+    router.post('/apply-lan-settings', async (request, response) => {
+        try {
+            return noStore(response).json({
+                ok: true,
+                data: await runExclusiveWrite(() => applyLanSettings(request.body)),
+            });
+        } catch (error) {
+            return sendError(response, error);
+        }
+    });
 
-    router.post('/restore-latest-backup', (_request, response) => noStore(response).status(501).json({
-        ok: false,
-        error: { code: 'READ_ONLY_PHASE', message: '恢复功能尚未启用；当前版本不会修改任何文件。' },
-    }));
+    router.post('/restore-latest-backup', async (request, response) => {
+        try {
+            return noStore(response).json({
+                ok: true,
+                data: await runExclusiveWrite(() => restoreLatestBackup(request.body)),
+            });
+        } catch (error) {
+            return sendError(response, error);
+        }
+    });
 
-    console.log('[cross-device-access-helper] Loaded in read-only preview phase.');
+    console.log('[cross-device-access-helper] Loaded. Safe apply and restore endpoints are available.');
 }
 
 export async function exit() {}
