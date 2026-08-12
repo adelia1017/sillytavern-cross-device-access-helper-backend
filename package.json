@@ -1,11 +1,12 @@
 {
   "name": "sillytavern-cross-device-access-helper-backend",
-  "version": "0.1.0-dev.2",
+  "version": "0.1.0",
   "description": "Security-focused LAN access configuration assistant for SillyTavern",
   "type": "module",
   "main": "dist/server-plugin.mjs",
   "scripts": {
     "build": "esbuild server/index.mjs --bundle --platform=node --format=esm --target=node20 --outfile=dist/server-plugin.mjs --legal-comments=inline",
+    "diagnose": "node scripts/diagnose.mjs",
     "test": "node --test --test-isolation=none",
     "check": "node --check server/index.mjs && node --check server/config-service.mjs && node --check scripts/enable-server-plugins.mjs && node --check shared/ip-utils.js && node --check dist/server-plugin.mjs"
   },

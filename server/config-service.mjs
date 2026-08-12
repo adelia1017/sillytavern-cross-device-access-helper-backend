@@ -202,7 +202,7 @@ export async function previewChange(body, {
         changed: changes.length > 0,
         canApply: false,
         applyBlockedReasons: [
-            '当前是只读开发阶段，写入接口尚未启用。',
+            '当前功能只提供读取和预览，不会写入配置。',
             ...(current.legacyWhitelistExists ? ['检测到 whitelist.txt；它会覆盖 config.yaml 中的白名单。'] : []),
         ],
         preservedWhitelist: current.allowed.whitelist,

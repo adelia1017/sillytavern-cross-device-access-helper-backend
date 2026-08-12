@@ -7553,7 +7553,7 @@ async function previewChange(body, {
     changed: changes.length > 0,
     canApply: false,
     applyBlockedReasons: [
-      "\u5F53\u524D\u662F\u53EA\u8BFB\u5F00\u53D1\u9636\u6BB5\uFF0C\u5199\u5165\u63A5\u53E3\u5C1A\u672A\u542F\u7528\u3002",
+      "\u5F53\u524D\u529F\u80FD\u53EA\u63D0\u4F9B\u8BFB\u53D6\u548C\u9884\u89C8\uFF0C\u4E0D\u4F1A\u5199\u5165\u914D\u7F6E\u3002",
       ...current.legacyWhitelistExists ? ["\u68C0\u6D4B\u5230 whitelist.txt\uFF1B\u5B83\u4F1A\u8986\u76D6 config.yaml \u4E2D\u7684\u767D\u540D\u5355\u3002"] : []
     ],
     preservedWhitelist: current.allowed.whitelist
