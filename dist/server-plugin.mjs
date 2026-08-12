@@ -7563,8 +7563,8 @@ async function previewChange(body, {
 // server/index.mjs
 var MAX_REQUEST_BYTES = 4096;
 var info = Object.freeze({
-  id: "cross-device-access-helper",
-  name: "\u8DE8\u8BBE\u5907\u8BBF\u95EE\u52A9\u624B\uFF08\u9AD8\u7EA7\u7248\uFF09",
+  id: "cross-device-access-helper-backend",
+  name: "\u8DE8\u8BBE\u5907\u8BBF\u95EE\u52A9\u624B\uFF08\u540E\u7AEF\u7248\uFF09",
   description: "\u4EE5\u6700\u5C0F\u6743\u9650\u68C0\u67E5\u5E76\u914D\u7F6E SillyTavern \u5C40\u57DF\u7F51\u8BBF\u95EE\u3002"
 });
 function noStore(response) {

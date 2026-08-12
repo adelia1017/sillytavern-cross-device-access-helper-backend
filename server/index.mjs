@@ -3,8 +3,8 @@ import { getStatus, previewChange, SafeConfigError } from './config-service.mjs'
 const MAX_REQUEST_BYTES = 4096;
 
 export const info = Object.freeze({
-    id: 'cross-device-access-helper',
-    name: '跨设备访问助手（高级版）',
+    id: 'cross-device-access-helper-backend',
+    name: '跨设备访问助手（后端版）',
     description: '以最小权限检查并配置 SillyTavern 局域网访问。',
 });
 

@@ -19,6 +19,12 @@
 
 ## 当前开发阶段
 
-`0.1.0-dev.1` 只有状态读取和修改预览。写入、备份和恢复接口固定返回 501，不会改动文件。
+`0.1.0-dev.2` 只有状态读取和修改预览。写入、备份和恢复接口固定返回 501，不会改动文件。
+
+### 关于首次启用服务器插件
+
+运行中的后端接口永远不允许修改 `enableServerPlugins`。前端只显示安装命令，不会执行它。
+
+仓库包含一个由用户在 Termux 中明确手动运行的独立安装脚本 `scripts/enable-server-plugins.mjs`。它的唯一配置修改是把 `enableServerPlugins` 设为 `true`，并且仅支持固定路径 `~/SillyTavern/config.yaml`。修改前会拒绝符号链接、无效 YAML 和重复键，创建带时间的备份，经临时文件再次解析验证后才原子替换。它不启动或重启 SillyTavern。
 
 检测到 `whitelist.txt` 时，后续自动写入也必须保持禁用，因为 SillyTavern 当前会优先使用该文件并覆盖 `config.yaml` 的白名单。

@@ -1,5 +1,5 @@
 {
-  "display_name": "跨设备访问助手（高级版）",
+  "display_name": "跨设备访问助手（后端版）",
   "loading_order": 101,
   "requires": [],
   "optional": [],
@@ -7,6 +7,6 @@
   "js": "frontend/index.js",
   "css": "frontend/style.css",
   "author": "adelia1017",
-  "version": "0.1.0-dev.1",
-  "homePage": "https://github.com/adelia1017/sillytavern-cross-device-access-helper-server"
+  "version": "0.1.0-dev.2",
+  "homePage": "https://github.com/adelia1017/sillytavern-cross-device-access-helper-backend"
 }

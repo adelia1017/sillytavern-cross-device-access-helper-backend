@@ -30,3 +30,10 @@ test('server implementation never names private SillyTavern data domains', async
         assert.equal(source.toLowerCase().includes(forbidden.toLowerCase()), false, forbidden);
     }
 });
+
+test('manual enable script contains no subprocess or outbound network modules', async () => {
+    const source = await fs.readFile(path.join(projectRoot, 'scripts/enable-server-plugins.mjs'), 'utf8');
+    for (const forbidden of ['node:child_process', 'exec(', 'execFile(', 'spawn(', "from 'node:http'", "from 'node:https'", 'fetch(']) {
+        assert.equal(source.includes(forbidden), false, forbidden);
+    }
+});
