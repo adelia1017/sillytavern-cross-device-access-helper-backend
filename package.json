@@ -3,13 +3,17 @@
   "version": "0.1.0-dev.1",
   "description": "Security-focused LAN access configuration assistant for SillyTavern",
   "type": "module",
-  "main": "server/index.mjs",
+  "main": "dist/server-plugin.mjs",
   "scripts": {
+    "build": "esbuild server/index.mjs --bundle --platform=node --format=esm --target=node20 --outfile=dist/server-plugin.mjs --legal-comments=inline",
     "test": "node --test --test-isolation=none",
-    "check": "node --check server/index.mjs && node --check server/config-service.mjs && node --check frontend/index.js && node --check shared/ip-utils.js"
+    "check": "node --check server/index.mjs && node --check server/config-service.mjs && node --check frontend/index.js && node --check shared/ip-utils.js && node --check dist/server-plugin.mjs"
   },
   "dependencies": {
     "yaml": "2.8.3"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.8"
   },
   "engines": {
     "node": ">=20"

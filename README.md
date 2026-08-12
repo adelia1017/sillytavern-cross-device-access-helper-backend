@@ -17,6 +17,8 @@
 
 前端不会尝试偷偷开启 `enableServerPlugins`。正式测试版会给 Android Termux 用户提供一整段可复制、创建备份并用 YAML 解析器验证的安装命令；用户执行后只需手动重启一次 SillyTavern。
 
+服务器插件的 YAML 依赖已打包在 `dist/server-plugin.mjs`，普通用户安装时不需要运行 `npm install`。可审查的原始实现保留在 `server/` 与 `shared/`。
+
 ## 当前接口
 
 - `GET /api/plugins/cross-device-access-helper/status`
