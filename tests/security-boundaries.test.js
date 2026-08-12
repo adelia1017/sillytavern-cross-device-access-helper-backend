@@ -37,3 +37,8 @@ test('manual enable script contains no subprocess or outbound network modules', 
         assert.equal(source.includes(forbidden), false, forbidden);
     }
 });
+
+test('backend repository cannot be mistaken for a standalone UI extension', async () => {
+    await assert.rejects(() => fs.access(path.join(projectRoot, 'manifest.json')));
+    await assert.rejects(() => fs.access(path.join(projectRoot, 'frontend', 'index.js')));
+});
