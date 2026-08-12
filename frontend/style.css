@@ -1,0 +1,42 @@
+.cross-device-advanced {
+    margin: 0.5rem 0;
+}
+
+.cross-device-advanced .inline-drawer-content {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.75rem;
+}
+
+.cross-device-advanced__notice {
+    border-left: 0.25rem solid var(--SmartThemeQuoteColor, #d69e2e);
+    padding: 0.65rem 0.8rem;
+}
+
+.cross-device-advanced section {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.cross-device-advanced section[hidden],
+.cross-device-advanced pre[hidden] {
+    display: none;
+}
+
+.cross-device-advanced label {
+    display: block;
+}
+
+.cross-device-advanced pre {
+    max-height: 20rem;
+    overflow: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    border: 1px solid var(--SmartThemeBorderColor, #777);
+    border-radius: 0.4rem;
+    padding: 0.75rem;
+}
+
+.cross-device-advanced__error {
+    color: var(--warning, #e57373);
+}
